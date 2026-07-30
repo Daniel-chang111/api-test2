@@ -1,201 +1,110 @@
+<!doctype html>
+<html lang="ko">
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KRX 일별 시세</title>
   <style>
-    .chart-box {
-      max-width: 700px;
-      margin: 32px 0;
-    }
+    :root { color-scheme: light; font-family: Pretendard, system-ui, sans-serif; color: #172033; background: #f3f6fb; }
+    body { margin: 0; }
+    main { max-width: 1100px; margin: 0 auto; padding: 48px 24px; }
+    h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.6rem); }
+    .subtitle { color: #62708a; margin: 10px 0 28px; }
+    .panel { background: #fff; border: 1px solid #e3e8f2; border-radius: 16px; padding: 20px; box-shadow: 0 8px 24px #14213d0a; }
+    .api-status { display: flex; gap: 14px; align-items: center; margin-bottom: 18px; padding: 14px 16px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; }
+    .api-status strong { color: #1d4ed8; }
+    .badge { padding: 4px 11px; border-radius: 99px; background: #1697d5; color: white; font-size: .82rem; font-weight: 700; }
+    form { display: flex; align-items: end; gap: 12px; flex-wrap: wrap; }
+    label { display: grid; gap: 7px; font-size: .9rem; font-weight: 700; }
+    input, select, button { font: inherit; border-radius: 9px; padding: 10px 12px; }
+    input, select { border: 1px solid #cbd5e1; background: #fff; }
+    button { border: 0; color: white; background: #2457d6; font-weight: 700; cursor: pointer; }
+    button:disabled { opacity: .65; cursor: wait; }
+    #status { min-height: 24px; margin: 18px 0 0; color: #526176; }
+    #status.error { color: #c42626; }
+    .summary { display: flex; justify-content: space-between; gap: 12px; margin: 26px 0 12px; font-size: .95rem; color: #526176; }
+    .table-wrap { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; min-width: 800px; font-size: .92rem; }
+    th, td { padding: 13px 12px; border-bottom: 1px solid #e8edf5; white-space: nowrap; }
+    th { text-align: left; background: #f8faff; color: #526176; font-size: .82rem; }
+    td.number { text-align: right; font-variant-numeric: tabular-nums; }
+    .up { color: #dc2626; } .down { color: #2563eb; }
+    @media (max-width: 600px) { main { padding: 32px 16px; } }
   </style>
 </head>
 <body>
-  <h1>국내 주식 시세 (Mock)</h1>
-  <div id="stockChart" class="chart-box"></div>
-
-  <h1>가입 퍼널 (Mock)</h1>
-  <div id="funnelChart" class="chart-box"></div>
-
-  <h1>포물선 운동 시뮬레이션 (Mock)</h1>
-  <div id="parabolaChart" class="chart-box"></div>
-
-  <h1>목표 달성률 (Mock)</h1>
-  <div id="radialChart" class="chart-box"></div>
-
-  <h1>사용자 목록</h1>
-  <ul id="userList"></ul>
-
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <main>
+    <h1>유가증권 일별 시세</h1>
+    <p class="subtitle">승인된 KRX OpenAPI를 이용해 KOSPI 종목의 공식 일별 매매정보를 조회합니다.</p>
+    <section class="panel">
+      <div class="api-status">
+        <span class="badge">승인</span>
+        <div><strong>유가증권 일별매매정보</strong> <code>stk_bydd_trd</code></div>
+      </div>
+      <form id="searchForm">
+        <label>기준일자
+          <input id="date" name="date" type="date" required>
+        </label>
+        <button id="submit" type="submit">조회</button>
+      </form>
+      <p id="status" aria-live="polite">조회할 날짜를 선택하세요.</p>
+    </section>
+    <section id="results" hidden>
+      <div class="summary"><span id="resultDate"></span><span id="count"></span></div>
+      <div class="panel table-wrap">
+        <table>
+          <thead><tr><th>종목코드</th><th>종목명</th><th>시장</th><th>종가</th><th>대비</th><th>등락률</th><th>거래량</th><th>시가총액</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
   <script>
-    fetch("/users")
-      .then(res => res.json())
-      .then(users => {
-        const ul = document.getElementById("userList");
+    const $ = (id) => document.getElementById(id);
+    const formatter = new Intl.NumberFormat('ko-KR');
+    const today = new Date();
+    today.setDate(today.getDate() - 1);
+    $('date').value = today.toISOString().slice(0, 10);
 
-        users.forEach(user => {
-          const li = document.createElement("li");
-          li.textContent = user.username + "--" + user.email;
-          ul.appendChild(li);
-        });
+    function value(item, field) { return item[field] ?? '-'; }
+    function number(value) { return value === '-' ? '-' : formatter.format(Number(String(value).replaceAll(',', ''))); }
+    function cell(text, className = '') { const td = document.createElement('td'); td.textContent = text; td.className = className; return td; }
+
+    function render(items) {
+      const fragment = document.createDocumentFragment();
+      items.forEach((item) => {
+        const row = document.createElement('tr');
+        const rate = Number(String(value(item, 'FLUC_RT')).replaceAll(',', ''));
+        row.append(cell(value(item, 'ISU_CD')), cell(value(item, 'ISU_NM')), cell(value(item, 'MKT_NM')));
+        row.append(cell(number(value(item, 'TDD_CLSPRC')), 'number'), cell(number(value(item, 'CMPPREVDD_PRC')), `number ${rate > 0 ? 'up' : rate < 0 ? 'down' : ''}`));
+        row.append(cell(value(item, 'FLUC_RT') === '-' ? '-' : `${value(item, 'FLUC_RT')}%`, `number ${rate > 0 ? 'up' : rate < 0 ? 'down' : ''}`));
+        row.append(cell(number(value(item, 'ACC_TRDVOL')), 'number'), cell(number(value(item, 'MKTCAP')), 'number'));
+        fragment.append(row);
       });
+      $('rows').replaceChildren(fragment);
+    }
 
-    // ------------------------------------------------------
-    // 1) 국내 주식(예: 삼성전자) 목업 시세 - 캔들스틱
-    // ------------------------------------------------------
-    fetch("/mock/stock")
-      .then(res => res.json())
-      .then(stockData => {
-        const series = stockData.map(item => ({
-          x: new Date(item.date),
-          y: [item.open, item.high, item.low, item.close]
-        }));
-
-        new ApexCharts(document.querySelector("#stockChart"), {
-          chart: {
-            type: "candlestick",
-            height: 400,
-            toolbar: { show: true }
-          },
-          title: {
-            text: "삼성전자 (005930) - 목업 데이터",
-            align: "left"
-          },
-          series: [{ data: series }],
-          xaxis: {
-            type: "datetime"
-          },
-          yaxis: {
-            tooltip: { enabled: true },
-            labels: {
-              formatter: (value) => value.toLocaleString("ko-KR") + "원"
-            }
-          },
-          plotOptions: {
-            candlestick: {
-              colors: {
-                upward: "#e74c3c",   // 국내 관례: 상승 = 빨강
-                downward: "#3498db"  // 하락 = 파랑
-              }
-            }
-          }
-        }).render();
-      });
-
-    // ------------------------------------------------------
-    // 2) 가입 퍼널(funnel) 목업 - 노출 → 클릭 → 가입 → 결제
-    // ------------------------------------------------------
-    fetch("/mock/funnel")
-      .then(res => res.json())
-      .then(funnel => {
-        new ApexCharts(document.querySelector("#funnelChart"), {
-          chart: {
-            type: "bar",
-            height: 350
-          },
-          series: [{ name: "인원", data: funnel.values }],
-          plotOptions: {
-            bar: {
-              borderRadius: 0,
-              horizontal: true,
-              barHeight: "80%",
-              isFunnel: true,
-              distributed: true
-            }
-          },
-          colors: ["#e74c3c", "#e67e22", "#f1c40f", "#2ecc71"],
-          dataLabels: {
-            enabled: true,
-            formatter: (val, opt) => {
-              const pct = ((val / funnel.values[0]) * 100).toFixed(1);
-              return `${opt.w.globals.labels[opt.dataPointIndex]}: ${val.toLocaleString("ko-KR")}명 (${pct}%)`;
-            },
-            dropShadow: { enabled: true }
-          },
-          xaxis: {
-            categories: funnel.stages
-          },
-          legend: { show: false },
-          title: {
-            text: "가입 퍼널 - 목업 데이터",
-            align: "left"
-          }
-        }).render();
-      });
-
-    // ------------------------------------------------------
-    // 3) 포물선(투사체) 운동 시뮬레이션 - 서버에서 좌표 계산
-    // ------------------------------------------------------
-    fetch("/mock/parabola")
-      .then(res => res.json())
-      .then(({ v0, angle, points }) => {
-        const parabolaChart = new ApexCharts(document.querySelector("#parabolaChart"), {
-          chart: {
-            type: "line",
-            height: 350,
-            animations: { dynamicAnimation: { speed: 150 } },
-            toolbar: { show: false }
-          },
-          series: [{ name: "높이(m)", data: [] }],
-          stroke: { curve: "smooth", width: 3 },
-          colors: ["#8e44ad"],
-          xaxis: {
-            type: "numeric",
-            title: { text: "수평 거리 (m)" },
-            min: 0,
-            max: points[points.length - 1].x
-          },
-          yaxis: {
-            title: { text: "높이 (m)" },
-            min: 0
-          },
-          title: {
-            text: `포물선 운동 시뮬레이션 (초속 ${v0}m/s, 각도 ${angle}°)`,
-            align: "left"
-          },
-          markers: { size: 0 }
-        });
-
-        parabolaChart.render();
-
-        // 궤적을 순차적으로 그려서 발사체가 날아가는 모습을 시뮬레이션
-        let frame = 0;
-        setInterval(() => {
-          const revealed = points.slice(0, frame + 1);
-          parabolaChart.updateSeries([{ name: "높이(m)", data: revealed }]);
-          frame = (frame + 1) % (points.length + 10); // 끝에서 잠시 멈췄다가 반복
-        }, 80);
-      });
-
-    // ------------------------------------------------------
-    // 4) 목표 달성률 - 방사형(radial) 차트
-    // ------------------------------------------------------
-    fetch("/mock/radial")
-      .then(res => res.json())
-      .then(radial => {
-        new ApexCharts(document.querySelector("#radialChart"), {
-          chart: {
-            type: "radialBar",
-            height: 350
-          },
-          series: radial.series,
-          labels: radial.labels,
-          colors: ["#2ecc71", "#3498db", "#f1c40f"],
-          plotOptions: {
-            radialBar: {
-              dataLabels: {
-                total: {
-                  show: true,
-                  label: "평균",
-                  formatter: (w) => {
-                    const avg = w.globals.series.reduce((a, b) => a + b, 0) / w.globals.series.length;
-                    return `${avg.toFixed(1)}%`;
-                  }
-                }
-              }
-            }
-          },
-          title: {
-            text: "목표 달성률 - 목업 데이터",
-            align: "left"
-          }
-        }).render();
-      });
+    $('searchForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const basDd = $('date').value.replaceAll('-', '');
+      $('submit').disabled = true;
+      $('status').className = '';
+      $('status').textContent = 'KRX 데이터를 불러오는 중입니다…';
+      $('results').hidden = true;
+      try {
+        const response = await fetch(`/api/krx/stocks?bas_dd=${encodeURIComponent(basDd)}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || '조회에 실패했습니다.');
+        render(data.items);
+        $('resultDate').textContent = `${data.apiName} · ${data.basDd.slice(0, 4)}-${data.basDd.slice(4, 6)}-${data.basDd.slice(6, 8)}`;
+        $('count').textContent = `${formatter.format(data.count)}개 종목`;
+        $('results').hidden = false;
+        $('status').textContent = data.count ? '조회가 완료되었습니다.' : '해당 일자의 데이터가 없습니다. 다른 영업일을 선택하세요.';
+      } catch (error) {
+        $('status').className = 'error';
+        $('status').textContent = error.message;
+      } finally { $('submit').disabled = false; }
+    });
   </script>
 </body>
+</html>
