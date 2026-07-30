@@ -1,0 +1,201 @@
+<head>
+  <style>
+    .chart-box {
+      max-width: 700px;
+      margin: 32px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>국내 주식 시세 (Mock)</h1>
+  <div id="stockChart" class="chart-box"></div>
+
+  <h1>가입 퍼널 (Mock)</h1>
+  <div id="funnelChart" class="chart-box"></div>
+
+  <h1>포물선 운동 시뮬레이션 (Mock)</h1>
+  <div id="parabolaChart" class="chart-box"></div>
+
+  <h1>목표 달성률 (Mock)</h1>
+  <div id="radialChart" class="chart-box"></div>
+
+  <h1>사용자 목록</h1>
+  <ul id="userList"></ul>
+
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script>
+    fetch("/users")
+      .then(res => res.json())
+      .then(users => {
+        const ul = document.getElementById("userList");
+
+        users.forEach(user => {
+          const li = document.createElement("li");
+          li.textContent = user.username + "--" + user.email;
+          ul.appendChild(li);
+        });
+      });
+
+    // ------------------------------------------------------
+    // 1) 국내 주식(예: 삼성전자) 목업 시세 - 캔들스틱
+    // ------------------------------------------------------
+    fetch("/mock/stock")
+      .then(res => res.json())
+      .then(stockData => {
+        const series = stockData.map(item => ({
+          x: new Date(item.date),
+          y: [item.open, item.high, item.low, item.close]
+        }));
+
+        new ApexCharts(document.querySelector("#stockChart"), {
+          chart: {
+            type: "candlestick",
+            height: 400,
+            toolbar: { show: true }
+          },
+          title: {
+            text: "삼성전자 (005930) - 목업 데이터",
+            align: "left"
+          },
+          series: [{ data: series }],
+          xaxis: {
+            type: "datetime"
+          },
+          yaxis: {
+            tooltip: { enabled: true },
+            labels: {
+              formatter: (value) => value.toLocaleString("ko-KR") + "원"
+            }
+          },
+          plotOptions: {
+            candlestick: {
+              colors: {
+                upward: "#e74c3c",   // 국내 관례: 상승 = 빨강
+                downward: "#3498db"  // 하락 = 파랑
+              }
+            }
+          }
+        }).render();
+      });
+
+    // ------------------------------------------------------
+    // 2) 가입 퍼널(funnel) 목업 - 노출 → 클릭 → 가입 → 결제
+    // ------------------------------------------------------
+    fetch("/mock/funnel")
+      .then(res => res.json())
+      .then(funnel => {
+        new ApexCharts(document.querySelector("#funnelChart"), {
+          chart: {
+            type: "bar",
+            height: 350
+          },
+          series: [{ name: "인원", data: funnel.values }],
+          plotOptions: {
+            bar: {
+              borderRadius: 0,
+              horizontal: true,
+              barHeight: "80%",
+              isFunnel: true,
+              distributed: true
+            }
+          },
+          colors: ["#e74c3c", "#e67e22", "#f1c40f", "#2ecc71"],
+          dataLabels: {
+            enabled: true,
+            formatter: (val, opt) => {
+              const pct = ((val / funnel.values[0]) * 100).toFixed(1);
+              return `${opt.w.globals.labels[opt.dataPointIndex]}: ${val.toLocaleString("ko-KR")}명 (${pct}%)`;
+            },
+            dropShadow: { enabled: true }
+          },
+          xaxis: {
+            categories: funnel.stages
+          },
+          legend: { show: false },
+          title: {
+            text: "가입 퍼널 - 목업 데이터",
+            align: "left"
+          }
+        }).render();
+      });
+
+    // ------------------------------------------------------
+    // 3) 포물선(투사체) 운동 시뮬레이션 - 서버에서 좌표 계산
+    // ------------------------------------------------------
+    fetch("/mock/parabola")
+      .then(res => res.json())
+      .then(({ v0, angle, points }) => {
+        const parabolaChart = new ApexCharts(document.querySelector("#parabolaChart"), {
+          chart: {
+            type: "line",
+            height: 350,
+            animations: { dynamicAnimation: { speed: 150 } },
+            toolbar: { show: false }
+          },
+          series: [{ name: "높이(m)", data: [] }],
+          stroke: { curve: "smooth", width: 3 },
+          colors: ["#8e44ad"],
+          xaxis: {
+            type: "numeric",
+            title: { text: "수평 거리 (m)" },
+            min: 0,
+            max: points[points.length - 1].x
+          },
+          yaxis: {
+            title: { text: "높이 (m)" },
+            min: 0
+          },
+          title: {
+            text: `포물선 운동 시뮬레이션 (초속 ${v0}m/s, 각도 ${angle}°)`,
+            align: "left"
+          },
+          markers: { size: 0 }
+        });
+
+        parabolaChart.render();
+
+        // 궤적을 순차적으로 그려서 발사체가 날아가는 모습을 시뮬레이션
+        let frame = 0;
+        setInterval(() => {
+          const revealed = points.slice(0, frame + 1);
+          parabolaChart.updateSeries([{ name: "높이(m)", data: revealed }]);
+          frame = (frame + 1) % (points.length + 10); // 끝에서 잠시 멈췄다가 반복
+        }, 80);
+      });
+
+    // ------------------------------------------------------
+    // 4) 목표 달성률 - 방사형(radial) 차트
+    // ------------------------------------------------------
+    fetch("/mock/radial")
+      .then(res => res.json())
+      .then(radial => {
+        new ApexCharts(document.querySelector("#radialChart"), {
+          chart: {
+            type: "radialBar",
+            height: 350
+          },
+          series: radial.series,
+          labels: radial.labels,
+          colors: ["#2ecc71", "#3498db", "#f1c40f"],
+          plotOptions: {
+            radialBar: {
+              dataLabels: {
+                total: {
+                  show: true,
+                  label: "평균",
+                  formatter: (w) => {
+                    const avg = w.globals.series.reduce((a, b) => a + b, 0) / w.globals.series.length;
+                    return `${avg.toFixed(1)}%`;
+                  }
+                }
+              }
+            }
+          },
+          title: {
+            text: "목표 달성률 - 목업 데이터",
+            align: "left"
+          }
+        }).render();
+      });
+  </script>
+</body>
