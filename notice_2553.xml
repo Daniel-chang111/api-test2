@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<rss version="2.0">
+  <channel>
+    <title>KOSIS 공지사항 (선택 항목)</title>
+    <link>https://kosis.kr/rss/notice_rss.jsp</link>
+    <description>KOSIS 공지사항 RSS에서 선택한 게시물</description>
+    <item>
+      <title>인공지능(AI) 기반 이용자 맞춤형 국가통계포털 통계표 생성 시범 서비스 안내</title>
+      <link>http://kosis.kr/serviceInfo/noticeDetail.do?boardIdx=2553</link>
+      <guid isPermaLink="true">http://kosis.kr/serviceInfo/noticeDetail.do?boardIdx=2553</guid>
+      <pubDate>2026-07-08 00:00:00.0</pubDate>
+      <description>안녕하세요 국가데이터처 통계서비스기획과입니다. 
+      국가통계포털(KOSIS)에서는 국민이 일상언어로 원하는 통계를 질의하면 맞춤형 통계표를 생성할 수 있는 
+      'AI 기반 이용자 맞춤형 KOSIS 통계표 생성 시범서비스'를 추진하고 있습니다. 
+      이번 서비스는 AI · 데이터 연결 기술(MCP, Model Context Protocol)을 활용하여 
+      국가통계포털(KOSIS)에 수록된 1,360여 종의 국가승인통계와 26만 여 
+      통계표를 AI 기능에 접목하여 이용자가 원하는 통계표를 만들 수 있습니다. 아래 첨부한 가이드를 참고하여 
+      이용자가 활용하고 있는 AI(Claude, Gemini, ChatGPT 등)에 KOSIS MCP를 연결해 이용할 수 있습니다. 
+      만약 사용에 불편 및 개선 사항을 '홈페이지 개선의견'에 작성해주시면 27년 정식서비스를 위한 개선에 
+      많은 도움이 될 것입니다. • MCP 설정 가이드 : 첨부파일 다운 링크 • 개선의견 제출 링크 : 민원안내 - 홈페이지 개선의견(https://kosis.kr/civilComplaint/siteRequestList.do) - 글쓰기 - 카테고리(통계표 생성 시범서비스) 
+      선택 후 작성 • 문의 : 통계서비스기획과(042-481-2378) 국가데이터처는 앞으로도 이용자가 편리하게 국가통계를 이용할 수 있는 환경을 조성할 수 있도록 최선을 다하겠습니다. + 26.07.16 내용추가: ChatGPT 정책 및 설정 메뉴가 변경되어, 그에 맞춰 가이드를 수정본으로 업데이트 하였습니다. 감사합니다.</description>
+    </item>
+  </channel>
+</rss>
