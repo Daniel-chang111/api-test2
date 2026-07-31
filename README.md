@@ -146,7 +146,12 @@ python3 kosis_rss.py --limit 5 --json
 
 # RSS 전체 결과를 JSON 파일로 저장
 python3 kosis_rss.py --output kosis_notices.json
+
+# 특정 게시물 번호를 RSS(XML) 파일로 다운로드
+python3 kosis_rss.py --board-idx 2553 --rss-output notice_2553.xml
 ```
+
+`boardIdx`는 공지 URL의 `?boardIdx=2553`처럼 표시되는 번호입니다. 위 명령은 해당 게시물 한 건만 포함하는 표준 RSS 2.0 XML 파일을 만듭니다.
 
 RSS 원본: https://kosis.kr/rss/notice_rss.jsp
 
