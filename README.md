@@ -133,6 +133,23 @@ git clone 저장소_주소
 
 # KRX 일별 시세 조회 예제
 
+## KOSIS 공지사항 RSS 읽기
+
+`kosis_rss.py`는 KOSIS가 제공하는 공지사항 RSS를 읽는 독립 실행 스크립트입니다. 별도 패키지 설치 없이 Python 표준 라이브러리만 사용합니다.
+
+```bash
+# 최근 공지 10건을 콘솔에 표시
+python3 kosis_rss.py
+
+# 최근 5건을 JSON으로 표시
+python3 kosis_rss.py --limit 5 --json
+
+# RSS 전체 결과를 JSON 파일로 저장
+python3 kosis_rss.py --output kosis_notices.json
+```
+
+RSS 원본: https://kosis.kr/rss/notice_rss.jsp
+
 이 프로젝트는 KRX OpenAPI에서 **유가증권 일별매매정보**를 받아 웹 화면에 표시하는 작은 예제입니다. Python으로 만든 서버가 KRX에 데이터를 요청하고, 브라우저는 그 결과를 표로 보여 줍니다.
 
 > 인증키는 서버에서만 사용합니다. 따라서 화면이나 GitHub 저장소에 키가 노출되지 않도록 구성되어 있습니다.
@@ -275,4 +292,3 @@ hostname -I
 
 ---
 ---
-
